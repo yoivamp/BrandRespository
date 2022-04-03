@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        .el-table .warning-row {
+            background: oldlace;
+        }
+
+        .el-table .success-row {
+            background: #f0f9eb;
+        }
+    </style>
+</head>
+
+
+<body>
+<div id="showpage">
+    <!--搜索表单展示-->
+    <el-form :inline="true" :model="formMessage" class="demo-form-inline">
+        <el-form-item label="当前状态">
+            <el-select v-model="formMessage.status" placeholder="当前状态">
+                <el-option label="启用" value="1"></el-option>
+                <el-option label="禁用" value="0"></el-option>
+            </el-select>
+        </el-form-item>
+
+        <el-form-item label="企业名称">
+            <el-input v-model="formMessage.companyName" placeholder="企业名称"></el-input>
+        </el-form-item>
+
+        <el-form-item label="品牌名称">
+            <el-input v-model="formMessage.brandName" placeholder="品牌名称"></el-input>
+        </el-form-item>
+
+        <el-form-item>
+            <el-button type="primary" icon="el-icon-search" @click="onSubmit">搜索</el-button>
+        </el-form-item>
+    </el-form>
+
+    <!--批量删除和新增按钮-->
+    <el-row>
+        <el-button type="danger" round @click="deleteById">批量删除</el-button>
+        <el-button type="primary" round @click="newDialogVisible = true">新增</el-button>
+
+    </el-row>
+
+
+    <!--添加数据对话框表单
+         placeholder:默认提示语
+         clearable：可清空
+         maxlength：最大长度
+         show-word-limit：统计长度
+    -->
+    <el-dialog
+            title="提示"
+            :visible.sync="newDialogVisible"
+            width="30%"
+            :before-close="handleClose">
+    <span>
+      <!--新增弹出的表单-->
+      <el-form :model="brand" label-width="100px" class="demo-ruleForm">
+        <el-form-item label="品牌名称" prop="name">
+         <el-input v-model="brand.brandName" placeholder="请输入品牌名称" clearable></el-input>
+        </el-form-item>
+
+       <el-form-item label="企业名称">
+         <el-input v-model="brand.companyName" placeholder="请输入企业名称" clearable></el-input>
+        </el-form-item>
+
+       <el-form-item label="排序">
+         <el-input v-model="brand.ordered" maxlength="10" show-word-limit></el-input>
+        </el-form-item>
+
+        <el-form-item label="备注">
+        <el-input type="textarea" v-model="brand.description"
+                  placeholder="请输入内容"
+                  maxlength="30"
+                  show-word-limit>
+        </el-input>
+          </el-form-item>
+
+        <el-form-item label="状态">
+        <el-switch v-model="brand.status"
+                   :active-value="1"
+                   :inactive-value="0"
+                   active-color="#00A854"
+                   inactive-color="#F04134"
+                   active-text="启用"
+                   inactive-text="禁用"
+        >
+        </el-switch>
+         </el-form-item>
+
+          <!--提交和取消按钮-->
+        <el-form-item>
+        <el-button type="primary" @click="addBrand">提交</el-button>
+        <el-button @click="closeNewForm">取消</el-button>
+        </el-form-item>
+</el-form>
+    </span>
+        <span slot="footer" class="dialog-footer">
+    </span>
+    </el-dialog>
+
+    <!--修改表单对话框 -->
+    <el-dialog
+            title="提示"
+            :visible.sync="changeDialogVisible"
+            width="30%"
+            :before-close="handleClose">
+    <span>
+
+      <el-form :model="radioSelected" label-width="100px" class="demo-ruleForm">
+        <el-form-item label="品牌名称" prop="name">
+         <el-input v-model="radioSelected.brandName" placeholder="请输入品牌名称" clearable></el-input>
+        </el-form-item>
+
+       <el-form-item label="企业名称">
+         <el-input v-model="radioSelected.companyName" placeholder="请输入企业名称" clearable></el-input>
+        </el-form-item>
+
+       <el-form-item label="排序">
+         <el-input v-model="radioSelected.ordered" maxlength="10" show-word-limit></el-input>
+        </el-form-item>
+
+        <el-form-item label="备注">
+        <el-input type="textarea" v-model="radioSelected.description"
+                  placeholder="请输入内容"
+                  maxlength="30"
+                  show-word-limit>
+        </el-input>
+          </el-form-item>
+
+        <el-form-item label="状态">
+        <el-switch v-model="radioSelected.status"
+                   :active-value="1"
+                   :inactive-value="0"
+                   active-color="#00A854"
+                   inactive-color="#F04134"
+                   active-text="启用"
+                   inactive-text="禁用"
+        >
+        </el-switch>
+         </el-form-item>
+
+          <!--提交和取消按钮-->
+        <el-form-item>
+        <el-button type="primary" @click="changeById">提交</el-button>
+        <el-button @click="closeChangeForm">取消</el-button>
+        </el-form-item>
+</el-form>
+    </span>
+        <span slot="footer" class="dialog-footer">
+  </span>
+    </el-dialog>
+
+
+    <!--品牌信息展示
+      table-column:表的列名
+      prop:绑定的数据模型（数据域的对象）
+      label：显示的列名名称
+    -->
+    <el-table
+            :data="tableData"
+            style="width: 100%"
+            :row-class-name="tableRowClassName"
+            @selection-change="handleSelectionChange"
+            @row-click="rowClick"
+    >
+        <!--复选框-->
+        <el-table-column
+                type="selection"
+                width="55">
+        </el-table-column>
+        <!--品牌编号-->
+        <el-table-column
+                type="index"
+                width="50">
+        </el-table-column>
+        <!--品牌名称-->
+        <el-table-column
+                prop="brandName"
+                label="品牌名称"
+                width="180"
+                align="center"
+        >
+        </el-table-column>
+        <!--企业名称-->
+        <el-table-column
+                prop="companyName"
+                label="企业名称"
+                width="180"
+                align="center"
+        >
+        </el-table-column>
+        <!--排序-->
+        <el-table-column
+                prop="ordered"
+                label="排序"
+                align="center"
+        >
+        </el-table-column>
+
+        <!--描述内容-->
+        <el-table-column
+                prop="description"
+                label="描述内容"
+                align="center"
+        >
+        </el-table-column>
+
+        <!--当前状态-->
+        <el-table-column
+                prop="status"
+                label="当前状态"
+                :formatter="statusFormatter"
+                width="180"
+        >
+        </el-table-column>
+        <!--操作-->
+        <el-table-column
+                label="操作"
+                width="180"
+        >
+            <!--修改和删除按钮-->
+            <el-row>
+                <el-button type="primary" icon="el-icon-edit" circle @click="changeDialogVisible = true"></el-button>
+                <el-button type="danger" icon="el-icon-delete" circle @click="deleteById"></el-button>
+            </el-row>
+        </el-table-column>
+    </el-table>
+
+
+    <!--分页条-->
+    <div class="block">
+        <el-pagination
+                @size-change="handleSizeChange"
+                @current-change="handleCurrentChange"
+                :current-page="currentPage"
+                :page-sizes="[10, 20, 30, 40]"
+                :page-size="pageSize"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="totalCount">
+        </el-pagination>
+    </div>
+</div>
+
+
+<!--引入相关资源-->
+<script src="../js/vue.js"></script>
+<script src="../element-ui/lib/index.js"></script>
+<link rel="stylesheet" href="../element-ui/lib/theme-chalk/index.css">
+<script src="../js/axios.js"></script>
+<script src="https://cdn.bootcss.com/qs/6.5.1/qs.min.js"></script>
+
+
+<script>
+
+    new Vue({
+        //控制div标签
+        el: "#showpage",
+        //页面加载完执行方法
+        mounted() {
+            this.selectAll();
+        },
+        //方法区
+        methods: {
+            // 选中一行执行方法
+            rowClick(val) {
+                this.radioSelected = val;
+                this.isMultiple = true;
+            },
+
+            //判断状态
+            statusFormatter(row) {
+                return row.status === 1 ? "启用" : "禁用";
+            },
+
+            //根据条件和分页查询所有数据
+            selectAll() {
+                //发送axios请求
+                let param = "?brandName=" + this.formMessage.brandName;
+                param += "&companyName=" + this.formMessage.companyName;
+                param += "&status=" + this.formMessage.status;
+                console.log(param);
+                axios.get("/brands/" + this.currentPage + "/" + this.pageSize + param).then((resp) => {
+                    //返回查询数据
+                    this.tableData = resp.data.data;
+                    //设置总记录数
+                    this.totalCount = resp.data.total;
+                }).catch(function () { // 请求失败处理
+                    alert(199);
+                });
+            },
+
+            //添加品牌
+            addBrand() {
+                axios.post("/brands", this.brand).then((resp) => {
+                    if (resp.data.status === 200) {
+                        //关闭新增对话框窗口
+                        this.newDialogVisible = false;
+                        //新增后清空brand对象
+                        this.brand = {};
+                        //重新查询数据
+                        this.selectAll();
+                        //弹出消息给用户提示添加成功
+                        this.$message({
+                            showClose: true,
+                            message: '恭喜你，添加成功',
+                            type: 'success'
+                        });
+                    }
+                })
+            },
+            //复选框点击后方法
+            handleSelectionChange(val) {
+                this.multipleSelection = val;
+            },
+            //删除方法
+            deleteById() {
+                //只有复选框有值时才会赋值
+                if (this.multipleSelection[0] != null) {
+                    //将复选框选中的id赋给selectedIds
+                    for (let i = 0; i < this.multipleSelection.length; i++) {
+                        this.selectedIds[i] = this.multipleSelection[i].id;
+                    }
+                }
+                //弹出提示是否确认删除信息
+                this.$confirm('此操作将永久删除该数据, 是否继续?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {         //用户点击删除或批量删除按钮
+                    //确定删除数据的id值
+                    let id;
+                    id = this.isMultiple ? this.radioSelected.id
+                        : this.selectedIds;
+                    axios.delete("/brands/" + id).then((resp) => {
+                        if (resp.data.status === 200) {
+                            //重新查询数据
+                            this.selectAll();
+                            //弹出消息给用户提示删除成功
+                            this.$message({
+                                showClose: true,
+                                message: '恭喜你，删除成功',
+                                type: 'success'
+                            });
+                        }
+                    })
+                }).catch(() => {
+                    //用户点击取消按钮
+                    this.$message({
+                        type: 'info',
+                        message: '已取消删除'
+                    });
+                })
+            },
+
+            //单个修改方法
+            changeById() {
+                axios.put("/brands", this.radioSelected).then((resp) => {
+                    if (resp.data.status === 200) {
+                        //关闭新增对话框窗口
+                        this.changeDialogVisible = false;
+                        //重新查询数据
+                        this.selectAll();
+                        //弹出消息给用户提示添加成功
+                        this.$message({
+                            showClose: true,
+                            message: '恭喜你，修改成功',
+                            type: 'success'
+                        });
+                    }
+                })
+            },
+
+            //关闭新增表单方法
+            closeNewForm() {
+                this.newDialogVisible = false;
+            },
+
+            //关闭修改表单方法
+            closeChangeForm() {
+                this.changeDialogVisible = false;
+            },
+
+            //搜索查询按钮点击方法
+            onSubmit() {
+                this.selectAll();
+            },
+
+            //每页条目数改变方法
+            handleSizeChange(val) {
+                // 重新设置每页显示的条数
+                this.pageSize = val;
+                //调用 selectAll函数重新分页查询数据
+                this.selectAll();
+            },
+            //当前页改变方法
+            handleCurrentChange(val) {
+                //重新设置当前页
+                this.currentPage = val;
+                //调用 selectAll 函数重新分页查询数据
+                this.selectAll();
+            },
+
+            tableRowClassName({rowIndex}) {
+                if (rowIndex === 1) {
+                    return 'warning-row';
+                } else if (rowIndex === 3) {
+                    return 'success-row';
+                }
+                return '';
+            }
+        },
+
+        //数据域
+        data() {
+            //返回数据对象
+            return {
+                //单个选中id
+                radioSelected: [],
+
+                //复选框选中数组
+                multipleSelection: [],
+
+                // 被选中的id数组
+                selectedIds: [],
+
+                //单个删除按钮或批量删除按钮标志(默认是批量删除)
+                isMultiple: false,
+
+                //修改按钮弹出对话框标志
+                changeDialogVisible: false,
+
+                //新增按钮弹出对话框标志
+                newDialogVisible: false,
+
+                //新增品牌数据表单
+                brand: {
+                    brandName: '',
+                    companyName: '',
+                    ordered: '',
+                    description: '',
+                    status: ''
+                },
+                //搜索表单对象
+                formMessage: {
+                    brandName: '',
+                    companyName: '',
+                    ordered: '',
+                    description: '',
+                    status: ''
+                },
+                //品牌表格信息
+                tableData: '',
+                //总记录数
+                totalCount: 100,
+                //当前页码
+                currentPage: 1,
+                //每页条目数
+                pageSize: 10
+            }
+        }
+    })
+</script>
+</body>
+</html>
